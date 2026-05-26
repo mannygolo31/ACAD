@@ -59,7 +59,7 @@ $stmt->close();
 echo "<h2>Login Information</h2>";
 echo "<ul>";
 echo "<li><strong>Username:</strong> admin</li>";
-echo "<li><strong>Password:</strong> " . ADMIN_PASSWORD . "</li>";
+echo "<li><strong>Password:</strong> [stored securely - check .env file]</li>";
 echo "<li><strong>Login URL:</strong> <a href='login.php'>" . BASE_URL . "/login.php</a></li>";
 echo "</ul>";
 
@@ -67,9 +67,9 @@ echo "</ul>";
 echo "<h2>Password Test</h2>";
 $test_password = ADMIN_PASSWORD;
 $test_hash = password_hash($test_password, PASSWORD_DEFAULT);
-echo "<p>Test hash for '$test_password': " . $test_hash . "</p>";
+echo "<p>Password hash verification test:</p>";
 echo "<p>Verification test: " . (password_verify($test_password, $test_hash) ? "✓ Working" : "✗ Failed") . "</p>";
 
 echo "<hr>";
-echo "<p><a href='login.php' style='padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;'>Go to Login Page →</a></p>";
+echo "<p><a href='login.php' style='padding: 10px 20px; background: #d81919; color: white; text-decoration: none; border-radius: 5px;'>Go to Login Page</a></p>";
 ?>

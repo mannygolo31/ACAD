@@ -1,0 +1,26 @@
+# Environment files with secrets
+.env
+!.env.example
+
+# Uploads directory (user data)
+uploads/*
+!uploads/.gitkeep
+
+# Debug/test files
+debug_users.php
+test_login.php
+create_hash.php
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log

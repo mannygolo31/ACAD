@@ -23,10 +23,10 @@ $base_url = BASE_URL . '/view_employee.php';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; display: flex; }
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; display: flex; }
         
         /* Sidebar */
-        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
         .sidebar-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { font-size: 24px; margin-bottom: 5px; }
         .sidebar-header p { font-size: 14px; opacity: 0.8; }
@@ -42,7 +42,7 @@ $base_url = BASE_URL . '/view_employee.php';
         .header h1 { color: #333; font-size: 24px; }
         .header .actions { display: flex; gap: 15px; }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .btn-secondary { background: #f0f0f0; color: #333; }
         
@@ -54,11 +54,11 @@ $base_url = BASE_URL . '/view_employee.php';
         .card-header { margin-bottom: 20px; }
         .employee-name { font-size: 18px; font-weight: bold; color: #333; }
         .employee-id { font-size: 12px; color: #999; margin-top: 3px; }
-        .employee-position { font-size: 14px; color: #667eea; margin-top: 5px; }
+        .employee-position { font-size: 14px; color: #d81919; margin-top: 5px; }
         .qr-container { text-align: center; margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 10px; }
         .qr-url { font-size: 11px; color: #666; word-break: break-all; margin-top: 10px; padding: 5px; background: #fff; border-radius: 4px; }
         .qr-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .qr-actions button { flex: 1; padding: 8px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; background: #667eea; color: white; transition: background 0.3s; }
+        .qr-actions button { flex: 1; padding: 8px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; background: #d81919; color: white; transition: background 0.3s; }
         .qr-actions button:hover { background: #5a6fd6; }
         .employee-details { margin-top: 15px; font-size: 13px; color: #666; }
         .employee-details div { margin-bottom: 3px; }
@@ -73,7 +73,7 @@ $base_url = BASE_URL . '/view_employee.php';
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>📱 QR Directory</h2>
+            <h2><i class="fas fa-shield-alt"></i> NSIAI</h2>
             <p>Employee Management System</p>
         </div>
         <div class="sidebar-menu">
@@ -91,6 +91,9 @@ $base_url = BASE_URL . '/view_employee.php';
             </a>
             <a href="records.php" class="menu-item">
                 <i class="fas fa-table"></i> Records
+            </a>
+            <a href="reset_password.php" class="menu-item">
+                <i class="fas fa-key"></i> Reset Password
             </a>
             <a href="logout.php" class="menu-item logout">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -112,7 +115,7 @@ $base_url = BASE_URL . '/view_employee.php';
         </div>
 
         <div class="password-note">
-            <strong>🔒 Password Protection:</strong> When scanned, users will need to enter password <strong>"<?php echo ADMIN_PASSWORD; ?>"</strong> to view the information.
+            <strong><i class="fas fa-lock"></i> Password Protection:</strong> When scanned, users will need to enter the admin password to view the information.
         </div>
 
         <div class="employee-grid" id="employeeGrid">
@@ -150,7 +153,7 @@ $base_url = BASE_URL . '/view_employee.php';
 
     <script>
         const baseUrl = '<?php echo $base_url; ?>';
-        const adminPassword = '<?php echo ADMIN_PASSWORD; ?>';
+        // Password is stored server-side only
         
         // Generate QR codes on page load
         window.onload = function() {

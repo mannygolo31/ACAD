@@ -1,0 +1,32 @@
+# robots.txt for Employee Directory System
+User-agent: *
+
+# Allow public pages
+Allow: /login.php
+Allow: /view_employee.php
+
+# Disallow admin/internal pages
+Disallow: /dashboard.php
+Disallow: /employees.php
+Disallow: /add_employee.php
+Disallow: /edit_employee.php
+Disallow: /records.php
+Disallow: /qr_codes.php
+Disallow: /generate_qr.php
+Disallow: /setup.php
+Disallow: /reset_password.php
+Disallow: /logout.php
+Disallow: /uploads/
+Disallow: /config.php
+Disallow: /rate_limiter.php
+Disallow: /input_validator.php
+
+# Block sensitive files
+Disallow: /.env
+Disallow: /.env.example
+Disallow: /.git/
+Disallow: /.htaccess
+Disallow: /.gitignore
+
+# Sitemap location
+Sitemap: /sitemap.xml

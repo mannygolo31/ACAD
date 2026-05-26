@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- Login Page -->
+    <url>
+        <loc>/login.php</loc>
+        <changefreq>monthly</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <!-- Employee View (public with password) -->
+    <url>
+        <loc>/view_employee.php</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+</urlset>
