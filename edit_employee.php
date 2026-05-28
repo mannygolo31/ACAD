@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = implode(' ', $validation_errors);
     } else {
     // Sanitize and prepare data - use existing values as fallback
+    $employee_id = isset($_POST['employee_id']) ? sanitize($_POST['employee_id']) : $employee['employee_id'];
     $first_name = isset($_POST['first_name']) ? sanitize($_POST['first_name']) : $employee['first_name'];
     $middle_name = isset($_POST['middle_name']) ? sanitize($_POST['middle_name']) : $employee['middle_name'];
     $last_name = isset($_POST['last_name']) ? sanitize($_POST['last_name']) : $employee['last_name'];
@@ -143,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Update database
     $sql = "UPDATE employees SET 
+        employee_id = ?,
         first_name = ?, 
         middle_name = ?, 
         last_name = ?, 
@@ -194,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         // Build type string
         $types = '';
+        $types .= 's'; // employee_id
         $types .= 's'; // first_name
         $types .= 's'; // middle_name
         $types .= 's'; // last_name
@@ -243,6 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         $update_stmt->bind_param(
             $types,
+            $employee_id,
             $first_name,
             $middle_name,
             $last_name,
@@ -431,6 +435,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="form-container">
             <form method="POST" action="" enctype="multipart/form-data" onsubmit="return validateForm()">
+                <!-- Employee ID -->
+                <div class="form-section">
+                    <h2><i class="fas fa-id-badge"></i> Employee ID</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-id-card"></i> Employee ID</label>
+                            <input type="text" name="employee_id" value="<?php echo htmlspecialchars($employee['employee_id']); ?>" placeholder="e.g. EMP2026001">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
                 <!-- Personal Information -->
                 <div class="form-section">
                     <h2><i class="fas fa-user"></i> Personal Information</h2>
