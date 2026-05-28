@@ -70,7 +70,8 @@ $qr_url = BASE_URL . '/view_employee.php?employee_id=' . urlencode($employee['em
         </div>
         
         <div class="password-note">
-            <strong><i class="fas fa-lock"></i> Password Protected:</strong> When scanned, users will need to enter the admin password to view information.
+            <strong><i class="fas fa-lock"></i> Password Protected:</strong> When scanned, users will need to enter this employee's password to view information.<br>
+            <strong>Current Password:</strong> <?php echo htmlspecialchars(!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North'); ?>
         </div>
         
         <div class="qr-container">

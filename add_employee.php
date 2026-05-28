@@ -98,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         pagibig_mid, philhealth_no, spouse_name, spouse_occupation, father_name,
         father_occupation, mother_name, mother_occupation, number_of_siblings,
         relative_working, relative_details, emergency_name, emergency_address,
-        emergency_contact, date_hired, photo_url
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        emergency_contact, date_hired, photo_url, qr_password
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -151,10 +151,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // emergency_contact
         $types .= 's'; // date_hired
         $types .= 's'; // photo_url
+        $types .= 's'; // qr_password
+        
+        // Auto-generate QR password: LastName + "North"
+        $qr_password = $last_name . 'North';
         
         // Debug: Check type string length
         error_log("Type string length: " . strlen($types) . " - Types: " . $types);
-        error_log("Number of parameters: 43");
+        error_log("Number of parameters: 44");
         
         $stmt->bind_param(
             $types,
@@ -200,7 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $emergency_address,
             $emergency_contact,
             $date_hired,
-            $photo_url
+            $photo_url,
+            $qr_password
         );
         
         if ($stmt->execute()) {

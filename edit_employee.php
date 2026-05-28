@@ -120,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_address = isset($_POST['emergency_address']) ? sanitize($_POST['emergency_address']) : $employee['emergency_address'];
     $emergency_contact = isset($_POST['emergency_contact']) ? sanitize($_POST['emergency_contact']) : $employee['emergency_contact'];
     $date_hired = isset($_POST['date_hired']) && !empty($_POST['date_hired']) ? sanitize($_POST['date_hired']) : $employee['date_hired'];
+    $qr_password = isset($_POST['qr_password']) && !empty($_POST['qr_password']) ? sanitize($_POST['qr_password']) : (!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North');
     $photo_url = $employee['photo_url']; // Keep existing photo by default
     
     // Handle file upload for photo
@@ -186,6 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         emergency_address = ?, 
         emergency_contact = ?,
         date_hired = ?, 
+        qr_password = ?,
         photo_url = ? 
         WHERE id = ?";
     
@@ -238,6 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // emergency_address
         $types .= 's'; // emergency_contact
         $types .= 's'; // date_hired
+        $types .= 's'; // qr_password
         $types .= 's'; // photo_url
         $types .= 'i'; // id - INTEGER
         
@@ -288,6 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $emergency_address,
             $emergency_contact,
             $date_hired,
+            $qr_password,
             $photo_url,
             $id
         );
@@ -679,6 +683,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="form-group">
                             <label><i class="fas fa-phone"></i> Contact Number</label>
                             <input type="text" name="emergency_contact" value="<?php echo htmlspecialchars($employee['emergency_contact']); ?>">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Password -->
+                <div class="form-section">
+                    <h2><i class="fas fa-qrcode"></i> QR Code Password</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> QR View Password</label>
+                            <input type="text" name="qr_password" value="<?php echo htmlspecialchars(!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North'); ?>" placeholder="Password to view via QR code">
+                            <small style="color: #888; margin-top: 5px; display: block;">Default: LastName + North (e.g. <?php echo htmlspecialchars($employee['last_name']); ?>North)</small>
                         </div>
                     </div>
                 </div>

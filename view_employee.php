@@ -5,30 +5,7 @@ require_once 'config.php';
 $id = isset($_GET['id']) ? sanitize($_GET['id']) : 0;
 $employee_id = isset($_GET['employee_id']) ? sanitize($_GET['employee_id']) : '';
 
-// Check if password is provided (POST only for security)
-$show_info = false;
-$password_error = false;
-
-// Also allow logged-in admins to view without password
-if (isLoggedIn()) {
-    $show_info = true;
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pass'])) {
-    // Rate limit password attempts on view_employee
-    $view_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $view_key = 'view_employee:' . $view_ip;
-    $view_limiter = new RateLimiter(5, 900);
-    if ($view_limiter->isRateLimited($view_key)) {
-        $password_error = true;
-    } elseif ($_POST['pass'] === ADMIN_PASSWORD) {
-        $show_info = true;
-        $view_limiter->reset($view_key);
-    } else {
-        $view_limiter->recordAttempt($view_key);
-        $password_error = true;
-    }
-}
-
-// Get employee data
+// Get employee data first (needed to check per-employee password)
 if ($id > 0) {
     $stmt = $conn->prepare("SELECT * FROM employees WHERE id = ?");
     $stmt->bind_param("i", $id);
@@ -50,6 +27,35 @@ if ($result->num_rows == 0) {
 
 $employee = $result->fetch_assoc();
 $stmt->close();
+
+// Determine the employee's QR password
+// Default: LastName + "North" (e.g. "Dela CruzNorth")
+$expected_password = !empty($employee['qr_password'])
+    ? $employee['qr_password']
+    : $employee['last_name'] . 'North';
+
+// Check if password is provided (POST only for security)
+$show_info = false;
+$password_error = false;
+
+// Also allow logged-in admins to view without password
+if (isLoggedIn()) {
+    $show_info = true;
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pass'])) {
+    // Rate limit password attempts on view_employee
+    $view_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $view_key = 'view_employee:' . $view_ip;
+    $view_limiter = new RateLimiter(5, 900);
+    if ($view_limiter->isRateLimited($view_key)) {
+        $password_error = true;
+    } elseif ($_POST['pass'] === $expected_password) {
+        $show_info = true;
+        $view_limiter->reset($view_key);
+    } else {
+        $view_limiter->recordAttempt($view_key);
+        $password_error = true;
+    }
+}
 
 // Add full_name field for display
 $employee['full_name'] = trim($employee['first_name'] . ' ' . $employee['middle_name'] . ' ' . $employee['last_name']);
@@ -107,7 +113,7 @@ if (!$show_info) {
             <div class="password-icon">🔒</div>
             <div class="header">
                 <h1>Password Required</h1>
-                <p>This employee information is protected. Please enter the password to continue.</p>
+                <p>Enter the password for <strong><?php echo htmlspecialchars($employee['full_name']); ?></strong> to view their information.</p>
             </div>
             
             <form method="POST" action="view_employee.php?id=<?php echo urlencode($id); ?>&employee_id=<?php echo urlencode($employee_id); ?>">

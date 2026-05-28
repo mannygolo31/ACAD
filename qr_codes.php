@@ -4,7 +4,7 @@ require_once 'config.php';
 requireLogin();
 
 // Get all employees
-$result = $conn->query("SELECT id, employee_id, first_name, last_name, full_name, position, department FROM employees ORDER BY first_name");
+$result = $conn->query("SELECT id, employee_id, first_name, last_name, full_name, position, department, qr_password FROM employees ORDER BY first_name");
 $employees = [];
 while ($row = $result->fetch_assoc()) {
     $employees[] = $row;
@@ -115,7 +115,7 @@ $base_url = BASE_URL . '/view_employee.php';
         </div>
 
         <div class="password-note">
-            <strong><i class="fas fa-lock"></i> Password Protection:</strong> When scanned, users will need to enter the admin password to view the information.
+            <strong><i class="fas fa-lock"></i> Password Protection:</strong> Each employee has their own QR password (default: LastName + "North"). You can change it on the Edit Employee page.
         </div>
 
         <div class="employee-grid" id="employeeGrid">
@@ -139,6 +139,7 @@ $base_url = BASE_URL . '/view_employee.php';
                     
                     <div class="employee-details">
                         <div>🏢 <?php echo htmlspecialchars($emp['department'] ?: 'No Department'); ?></div>
+                        <div>🔑 Password: <strong><?php echo htmlspecialchars(!empty($emp['qr_password']) ? $emp['qr_password'] : $emp['last_name'] . 'North'); ?></strong></div>
                     </div>
                     
                     <div class="qr-actions">

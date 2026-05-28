@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS employees (
     emergency_contact VARCHAR(50),
     date_hired DATE NULL,
     photo_url VARCHAR(500),
+    qr_password VARCHAR(255) DEFAULT NULL COMMENT 'Password to view employee via QR code. Default: LastName + North',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
