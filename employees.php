@@ -135,6 +135,12 @@ $csrf_token = generateCSRFToken();
         <div class="header">
             <h1>Employees</h1>
             <div class="actions">
+                <a href="import_employees.php" class="btn" style="background:#2196f3;color:white;">
+                    <i class="fas fa-file-import"></i> Import
+                </a>
+                <a href="export_employees.php" class="btn" style="background:#4caf50;color:white;">
+                    <i class="fas fa-file-export"></i> Export CSV
+                </a>
                 <a href="add_employee.php" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Add Employee
                 </a>
@@ -174,7 +180,13 @@ $csrf_token = generateCSRFToken();
                     <tr>
                         <td><?php echo $row_number++; ?></td>
                         <td><?php echo htmlspecialchars($row['employee_id']); ?></td>
-                        <td><?php echo htmlspecialchars($row['full_name']); ?></td>
+                        <td><?php 
+                            $display_name = $row['full_name'];
+                            if (empty($display_name)) {
+                                $display_name = trim($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']);
+                            }
+                            echo htmlspecialchars($display_name); 
+                        ?></td>
                         <td><?php echo htmlspecialchars($row['position']); ?></td>
                         <td><?php echo htmlspecialchars($row['department']); ?></td>
                         <td><?php echo htmlspecialchars($row['email']); ?></td>

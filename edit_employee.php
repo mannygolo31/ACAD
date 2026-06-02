@@ -121,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_contact = isset($_POST['emergency_contact']) ? sanitize($_POST['emergency_contact']) : $employee['emergency_contact'];
     $date_hired = isset($_POST['date_hired']) && !empty($_POST['date_hired']) ? sanitize($_POST['date_hired']) : $employee['date_hired'];
     $qr_password = isset($_POST['qr_password']) && !empty($_POST['qr_password']) ? sanitize($_POST['qr_password']) : (!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North');
+    $full_name = trim($first_name . ' ' . $middle_name . ' ' . $last_name);
     $photo_url = $employee['photo_url']; // Keep existing photo by default
     
     // Handle file upload for photo
@@ -148,7 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         employee_id = ?,
         first_name = ?, 
         middle_name = ?, 
-        last_name = ?, 
+        last_name = ?,
+        full_name = ?, 
         nickname = ?, 
         date_of_birth = ?, 
         age = ?, 
@@ -202,6 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // first_name
         $types .= 's'; // middle_name
         $types .= 's'; // last_name
+        $types .= 's'; // full_name
         $types .= 's'; // nickname
         $types .= 's'; // date_of_birth
         $types .= 'i'; // age - INTEGER
@@ -253,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $first_name,
             $middle_name,
             $last_name,
+            $full_name,
             $nickname,
             $date_of_birth,
             $age,
