@@ -5,6 +5,7 @@
 # Uploads directory (user data)
 uploads/*
 !uploads/.gitkeep
+!uploads/.htaccess
 
 # Debug/test files
 debug_users.php
