@@ -1,5 +1,11 @@
 <?php
 // config.php
+
+// Session security settings (MUST be set before session_start)
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.use_strict_mode', 1);
+
 session_start();
 
 // Load environment variables from .env file
@@ -54,11 +60,6 @@ header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-
-// Session security settings
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.use_strict_mode', 1);
 
 // Include security utilities
 require_once __DIR__ . '/rate_limiter.php';
