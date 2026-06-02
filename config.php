@@ -24,9 +24,9 @@ loadEnv(__DIR__ . '/.env');
 
 // Database configuration from environment variables
 $host     = getenv('DB_HOST') ?: 'localhost';
-$username = getenv('DB_USERNAME') ?: '';
+$username = getenv('DB_USERNAME') ?: 'root';
 $password = getenv('DB_PASSWORD') ?: '';
-$database = getenv('DB_NAME') ?: '';
+$database = getenv('DB_NAME') ?: 'emp';
 
 // Create database connection
 $conn = new mysqli($host, $username, $password, $database);

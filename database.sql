@@ -1,13 +1,12 @@
 -- =====================================================
 -- Employee Directory with QR System - Full Database SQL
 -- =====================================================
--- Database: if0_40195878_emp (or your preferred DB name)
+-- Database: emp
 -- Run this file to set up the complete database schema
 -- =====================================================
 
--- Create database (uncomment if needed)
--- CREATE DATABASE IF NOT EXISTS if0_40195878_emp;
--- USE if0_40195878_emp;
+CREATE DATABASE IF NOT EXISTS emp;
+USE emp;
 
 -- =====================================================
 -- Table: users
@@ -105,16 +104,28 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 -- VALUES ('admin', '$2y$10$...hashed...', 'admin');
 
 -- =====================================================
+-- Default Admin User
+-- Username: admin | Password: admin1234
+-- =====================================================
+INSERT INTO users (username, password, role)
+VALUES ('admin', '$2y$10$YourHashHere', 'admin')
+ON DUPLICATE KEY UPDATE username=username;
+
+-- NOTE: After importing this SQL, visit setup.php or
+-- reset_password.php in your browser to set the correct
+-- bcrypt password hash for the admin user.
+
+-- =====================================================
 -- Indexes for better query performance
 -- =====================================================
-CREATE INDEX idx_employees_employee_id ON employees(employee_id);
-CREATE INDEX idx_employees_department ON employees(department);
-CREATE INDEX idx_employees_status ON employees(employment_status);
-CREATE INDEX idx_employees_name ON employees(first_name, last_name);
-CREATE INDEX idx_employees_email ON employees(email);
-CREATE INDEX idx_activity_user ON activity_logs(user_id);
-CREATE INDEX idx_activity_action ON activity_logs(action);
-CREATE INDEX idx_activity_date ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_employees_employee_id ON employees(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department);
+CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(employment_status);
+CREATE INDEX IF NOT EXISTS idx_employees_name ON employees(first_name, last_name);
+CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
+CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_action ON activity_logs(action);
+CREATE INDEX IF NOT EXISTS idx_activity_date ON activity_logs(created_at);
 
 -- =====================================================
 -- How to use:
