@@ -1,5 +1,11 @@
 <?php
 // import_employees.php - Import employees from CSV
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+try {
+
 require_once 'config.php';
 requireLogin();
 
@@ -133,9 +139,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             // Calculate age from DOB if age not provided
                             if ($age == 0 && !empty($date_of_birth)) {
-                                $dob = new DateTime($date_of_birth);
-                                $now = new DateTime();
-                                $age = $now->diff($dob)->y;
+                                try {
+                                    $dob = new DateTime($date_of_birth);
+                                    $now = new DateTime();
+                                    $age = $now->diff($dob)->y;
+                                } catch (Exception $e) {
+                                    $age = 0;
+                                }
                             }
 
                             $place_of_birth = sanitize($get('place_of_birth'));
@@ -210,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $ins = $conn->prepare($sql);
                             if ($ins) {
                                 $ins->bind_param(
-                                    "sssssssissssssssssssssdddssssssssssssisssssss",
+                                    "sssssssissssssssssssssdddsssssssssssisssssss",
                                     $employee_id, $first_name, $middle_name, $last_name, $full_name, $nickname,
                                     $date_of_birth, $age, $place_of_birth, $gender, $mobile_number, $telephone_number,
                                     $email, $present_address, $permanent_address, $civil_status, $religion,
@@ -252,6 +262,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+}
+} catch (Throwable $e) {
+    error_log('Import page error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    echo '<h3>Error: ' . htmlspecialchars($e->getMessage()) . '</h3>';
+    echo '<p>File: ' . htmlspecialchars($e->getFile()) . ' Line: ' . $e->getLine() . '</p>';
+    exit;
 }
 ?>
 <!DOCTYPE html>
