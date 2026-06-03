@@ -7,6 +7,15 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Validate inputs
+    $validation_errors = InputValidator::validateAllInputs($_POST, ['first_name', 'last_name']);
+    if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+        $file_errors = InputValidator::validateFileUpload($_FILES['photo']);
+        $validation_errors = array_merge($validation_errors, $file_errors);
+    }
+    if (!empty($validation_errors)) {
+        $error = implode(' ', $validation_errors);
+    } else {
     // Generate unique employee ID
     $employee_id = 'EMP' . date('Y') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
     
@@ -80,17 +89,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Debug: Check if age is calculated
     error_log("Age calculated: " . $age . " for DOB: " . $date_of_birth);
     
+    // Build full name
+    $full_name = trim($first_name . ' ' . $middle_name . ' ' . $last_name);
+
     // Insert into database
     $sql = "INSERT INTO employees (
-        employee_id, first_name, middle_name, last_name, nickname, date_of_birth, age,
+        employee_id, first_name, middle_name, last_name, full_name, nickname, date_of_birth, age,
         place_of_birth, gender, mobile_number, telephone_number, email, present_address,
         permanent_address, civil_status, religion, position, department, branch, company,
         employment_status, basic_salary, rate, allowances, pay_frequency, sss_no, tin,
         pagibig_mid, philhealth_no, spouse_name, spouse_occupation, father_name,
         father_occupation, mother_name, mother_occupation, number_of_siblings,
         relative_working, relative_details, emergency_name, emergency_address,
-        emergency_contact, date_hired, photo_url
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        emergency_contact, date_hired, photo_url, qr_password
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -103,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // first_name
         $types .= 's'; // middle_name
         $types .= 's'; // last_name
+        $types .= 's'; // full_name
         $types .= 's'; // nickname
         $types .= 's'; // date_of_birth
         $types .= 'i'; // age - INTEGER
@@ -142,10 +155,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // emergency_contact
         $types .= 's'; // date_hired
         $types .= 's'; // photo_url
+        $types .= 's'; // qr_password
+        
+        // Auto-generate QR password: LastName + "North"
+        $qr_password = $last_name . 'North';
         
         // Debug: Check type string length
         error_log("Type string length: " . strlen($types) . " - Types: " . $types);
-        error_log("Number of parameters: 43");
+        error_log("Number of parameters: 45");
         
         $stmt->bind_param(
             $types,
@@ -153,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $first_name,
             $middle_name,
             $last_name,
+            $full_name,
             $nickname,
             $date_of_birth,
             $age,
@@ -191,7 +209,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $emergency_address,
             $emergency_contact,
             $date_hired,
-            $photo_url
+            $photo_url,
+            $qr_password
         );
         
         if ($stmt->execute()) {
@@ -206,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         $stmt->close();
     }
+    } // end validation check
 }
 ?>
 <!DOCTYPE html>
@@ -217,10 +237,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; display: flex; }
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; display: flex; }
         
         /* Sidebar */
-        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
         .sidebar-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { font-size: 24px; margin-bottom: 5px; }
         .sidebar-header p { font-size: 14px; opacity: 0.8; }
@@ -238,15 +258,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         /* Form */
         .form-container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0; }
-        .form-section h2 { color: #667eea; font-size: 20px; margin-bottom: 20px; }
+        .form-section h2 { color: #d81919; font-size: 20px; margin-bottom: 20px; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
         input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; transition: all 0.3s; }
-        input:focus, select:focus, textarea:focus { border-color: #667eea; }
+        input:focus, select:focus, textarea:focus { border-color: #d81919; }
         textarea { min-height: 100px; resize: vertical; }
         .btn { padding: 15px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #d81919 0%, #a01414 100%); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .btn-secondary { background: #f0f0f0; color: #333; }
         .btn-secondary:hover { background: #e0e0e0; }
@@ -260,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>📱 QR Directory</h2>
+            <h2><i class="fas fa-shield-alt"></i> NSIAI</h2>
             <p>Employee Management System</p>
         </div>
         <div class="sidebar-menu">
@@ -278,6 +298,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </a>
             <a href="records.php" class="menu-item">
                 <i class="fas fa-table"></i> Records
+            </a>
+            <a href="reset_password.php" class="menu-item">
+                <i class="fas fa-key"></i> Reset Password
             </a>
             <a href="logout.php" class="menu-item logout">
                 <i class="fas fa-sign-out-alt"></i> Logout

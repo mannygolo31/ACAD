@@ -30,7 +30,7 @@ $qr_url = BASE_URL . '/view_employee.php?employee_id=' . urlencode($employee['em
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .card { background: white; border-radius: 20px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         h1 { color: #333; margin-bottom: 10px; text-align: center; }
         .subtitle { color: #666; margin-bottom: 30px; text-align: center; }
@@ -43,7 +43,7 @@ $qr_url = BASE_URL . '/view_employee.php?employee_id=' . urlencode($employee['em
         .qr-url { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px; word-break: break-all; font-size: 12px; color: #666; }
         .actions { display: flex; gap: 15px; margin-top: 30px; }
         .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; }
         .btn-secondary { background: #f0f0f0; color: #333; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .password-note { background: #e8f5e8; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 30px; border-radius: 8px; }
@@ -70,7 +70,8 @@ $qr_url = BASE_URL . '/view_employee.php?employee_id=' . urlencode($employee['em
         </div>
         
         <div class="password-note">
-            <strong>🔒 Password Protected:</strong> When scanned, users will need to enter password <strong>"<?php echo ADMIN_PASSWORD; ?>"</strong> to view information.
+            <strong><i class="fas fa-lock"></i> Password Protected:</strong> When scanned, users will need to enter this employee's password to view information.<br>
+            <strong>Current Password:</strong> <?php echo htmlspecialchars(!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North'); ?>
         </div>
         
         <div class="qr-container">
@@ -124,7 +125,7 @@ $qr_url = BASE_URL . '/view_employee.php?employee_id=' . urlencode($employee['em
                 win.document.write('<p>Employee ID: <?php echo $employee['employee_id']; ?></p>');
                 win.document.write('<img src="' + canvas.toDataURL("image/png") + '">');
                 win.document.write('<p>Scan to view employee information</p>');
-                win.document.write('<p style="color: #666; font-size: 12px;">Password: <?php echo ADMIN_PASSWORD; ?></p>');
+                win.document.write('<p style="color: #666; font-size: 12px;">Password protected - contact admin for access</p>');
                 win.document.write('</body></html>');
                 win.print();
             }

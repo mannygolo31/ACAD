@@ -55,7 +55,17 @@ if (!isset($employee['age']) || $employee['age'] == '') {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Validate inputs
+    $validation_errors = InputValidator::validateAllInputs($_POST, ['first_name', 'last_name']);
+    if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+        $file_errors = InputValidator::validateFileUpload($_FILES['photo']);
+        $validation_errors = array_merge($validation_errors, $file_errors);
+    }
+    if (!empty($validation_errors)) {
+        $error = implode(' ', $validation_errors);
+    } else {
     // Sanitize and prepare data - use existing values as fallback
+    $employee_id = isset($_POST['employee_id']) ? sanitize($_POST['employee_id']) : $employee['employee_id'];
     $first_name = isset($_POST['first_name']) ? sanitize($_POST['first_name']) : $employee['first_name'];
     $middle_name = isset($_POST['middle_name']) ? sanitize($_POST['middle_name']) : $employee['middle_name'];
     $last_name = isset($_POST['last_name']) ? sanitize($_POST['last_name']) : $employee['last_name'];
@@ -110,6 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_address = isset($_POST['emergency_address']) ? sanitize($_POST['emergency_address']) : $employee['emergency_address'];
     $emergency_contact = isset($_POST['emergency_contact']) ? sanitize($_POST['emergency_contact']) : $employee['emergency_contact'];
     $date_hired = isset($_POST['date_hired']) && !empty($_POST['date_hired']) ? sanitize($_POST['date_hired']) : $employee['date_hired'];
+    $qr_password = isset($_POST['qr_password']) && !empty($_POST['qr_password']) ? sanitize($_POST['qr_password']) : (!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North');
+    $full_name = trim($first_name . ' ' . $middle_name . ' ' . $last_name);
     $photo_url = $employee['photo_url']; // Keep existing photo by default
     
     // Handle file upload for photo
@@ -134,9 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Update database
     $sql = "UPDATE employees SET 
+        employee_id = ?,
         first_name = ?, 
         middle_name = ?, 
-        last_name = ?, 
+        last_name = ?,
+        full_name = ?, 
         nickname = ?, 
         date_of_birth = ?, 
         age = ?, 
@@ -175,6 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         emergency_address = ?, 
         emergency_contact = ?,
         date_hired = ?, 
+        qr_password = ?,
         photo_url = ? 
         WHERE id = ?";
     
@@ -185,9 +200,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         // Build type string
         $types = '';
+        $types .= 's'; // employee_id
         $types .= 's'; // first_name
         $types .= 's'; // middle_name
         $types .= 's'; // last_name
+        $types .= 's'; // full_name
         $types .= 's'; // nickname
         $types .= 's'; // date_of_birth
         $types .= 'i'; // age - INTEGER
@@ -226,6 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $types .= 's'; // emergency_address
         $types .= 's'; // emergency_contact
         $types .= 's'; // date_hired
+        $types .= 's'; // qr_password
         $types .= 's'; // photo_url
         $types .= 'i'; // id - INTEGER
         
@@ -234,9 +252,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         $update_stmt->bind_param(
             $types,
+            $employee_id,
             $first_name,
             $middle_name,
             $last_name,
+            $full_name,
             $nickname,
             $date_of_birth,
             $age,
@@ -275,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $emergency_address,
             $emergency_contact,
             $date_hired,
+            $qr_password,
             $photo_url,
             $id
         );
@@ -310,6 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         $update_stmt->close();
     }
+    } // end validation check
 }
 ?>
 <!DOCTYPE html>
@@ -321,10 +343,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; display: flex; }
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; display: flex; }
         
         /* Sidebar */
-        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
         .sidebar-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { font-size: 24px; margin-bottom: 5px; }
         .sidebar-header p { font-size: 14px; opacity: 0.8; }
@@ -338,22 +360,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .main-content { margin-left: 280px; padding: 30px; width: calc(100% - 280px); }
         .header { background: white; padding: 20px 30px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .header h1 { color: #333; font-size: 24px; }
-        .header .employee-id { color: #667eea; font-size: 14px; }
+        .header .employee-id { color: #d81919; font-size: 14px; }
         
         /* Form */
         .form-container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0; }
-        .form-section h2 { color: #667eea; font-size: 20px; margin-bottom: 20px; }
+        .form-section h2 { color: #d81919; font-size: 20px; margin-bottom: 20px; }
         .form-section h2 i { margin-right: 10px; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
-        label i { margin-right: 5px; color: #667eea; }
+        label i { margin-right: 5px; color: #d81919; }
         input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; transition: all 0.3s; }
-        input:focus, select:focus, textarea:focus { border-color: #667eea; }
+        input:focus, select:focus, textarea:focus { border-color: #d81919; }
         textarea { min-height: 100px; resize: vertical; }
         .btn { padding: 15px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .btn-secondary { background: #f0f0f0; color: #333; }
         .btn-secondary:hover { background: #e0e0e0; }
@@ -362,14 +384,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .success-message { background: #e8f5e8; color: #4caf50; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #a5d6a7; }
         .photo-preview { max-width: 200px; margin-top: 10px; border-radius: 8px; }
         .current-photo { margin: 10px 0; }
-        .current-photo img { max-width: 100px; border-radius: 8px; border: 2px solid #667eea; }
+        .current-photo img { max-width: 100px; border-radius: 8px; border: 2px solid #d81919; }
         .required-field::after { content: " *"; color: red; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>📱 QR Directory</h2>
+            <h2><i class="fas fa-shield-alt"></i> NSIAI</h2>
             <p>Employee Management System</p>
         </div>
         <div class="sidebar-menu">
@@ -387,6 +409,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </a>
             <a href="records.php" class="menu-item">
                 <i class="fas fa-table"></i> Records
+            </a>
+            <a href="reset_password.php" class="menu-item">
+                <i class="fas fa-key"></i> Reset Password
             </a>
             <a href="logout.php" class="menu-item logout">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -418,6 +443,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="form-container">
             <form method="POST" action="" enctype="multipart/form-data" onsubmit="return validateForm()">
+                <!-- Employee ID -->
+                <div class="form-section">
+                    <h2><i class="fas fa-id-badge"></i> Employee ID</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-id-card"></i> Employee ID</label>
+                            <input type="text" name="employee_id" value="<?php echo htmlspecialchars($employee['employee_id']); ?>" placeholder="e.g. EMP2026001">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
                 <!-- Personal Information -->
                 <div class="form-section">
                     <h2><i class="fas fa-user"></i> Personal Information</h2>
@@ -649,6 +687,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="form-group">
                             <label><i class="fas fa-phone"></i> Contact Number</label>
                             <input type="text" name="emergency_contact" value="<?php echo htmlspecialchars($employee['emergency_contact']); ?>">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Password -->
+                <div class="form-section">
+                    <h2><i class="fas fa-qrcode"></i> QR Code Password</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> QR View Password</label>
+                            <input type="text" name="qr_password" value="<?php echo htmlspecialchars(!empty($employee['qr_password']) ? $employee['qr_password'] : $employee['last_name'] . 'North'); ?>" placeholder="Password to view via QR code">
+                            <small style="color: #888; margin-top: 5px; display: block;">Default: LastName + North (e.g. <?php echo htmlspecialchars($employee['last_name']); ?>North)</small>
                         </div>
                     </div>
                 </div>

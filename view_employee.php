@@ -5,17 +5,7 @@ require_once 'config.php';
 $id = isset($_GET['id']) ? sanitize($_GET['id']) : 0;
 $employee_id = isset($_GET['employee_id']) ? sanitize($_GET['employee_id']) : '';
 
-// Check if password is provided
-$show_info = false;
-$password_error = false;
-
-if (isset($_GET['pass']) && $_GET['pass'] === ADMIN_PASSWORD) {
-    $show_info = true;
-} elseif (isset($_GET['pass'])) {
-    $password_error = true;
-}
-
-// Get employee data
+// Get employee data first (needed to check per-employee password)
 if ($id > 0) {
     $stmt = $conn->prepare("SELECT * FROM employees WHERE id = ?");
     $stmt->bind_param("i", $id);
@@ -37,6 +27,35 @@ if ($result->num_rows == 0) {
 
 $employee = $result->fetch_assoc();
 $stmt->close();
+
+// Determine the employee's QR password
+// Default: LastName + "North" (e.g. "Dela CruzNorth")
+$expected_password = !empty($employee['qr_password'])
+    ? $employee['qr_password']
+    : $employee['last_name'] . 'North';
+
+// Check if password is provided (POST only for security)
+$show_info = false;
+$password_error = false;
+
+// Also allow logged-in admins to view without password
+if (isLoggedIn()) {
+    $show_info = true;
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pass'])) {
+    // Rate limit password attempts on view_employee
+    $view_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $view_key = 'view_employee:' . $view_ip;
+    $view_limiter = new RateLimiter(5, 900);
+    if ($view_limiter->isRateLimited($view_key)) {
+        $password_error = true;
+    } elseif ($_POST['pass'] === $expected_password) {
+        $show_info = true;
+        $view_limiter->reset($view_key);
+    } else {
+        $view_limiter->recordAttempt($view_key);
+        $password_error = true;
+    }
+}
 
 // Add full_name field for display
 $employee['full_name'] = trim($employee['first_name'] . ' ' . $employee['middle_name'] . ' ' . $employee['last_name']);
@@ -73,17 +92,17 @@ if (!$show_info) {
         <title>Verify Access - Employee Directory</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+            body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #d81919 0%, #555555 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
             .card { background: white; border-radius: 20px; padding: 30px; max-width: 400px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUp 0.5s ease; }
             @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
             .header { text-align: center; margin-bottom: 30px; }
-            .header h1 { color: #667eea; font-size: 24px; margin-bottom: 10px; }
+            .header h1 { color: #d81919; font-size: 24px; margin-bottom: 10px; }
             .password-icon { font-size: 60px; text-align: center; margin-bottom: 20px; }
             .input-group { margin-bottom: 20px; }
             label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
             input { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; outline: none; }
-            input:focus { border-color: #667eea; }
-            button { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
+            input:focus { border-color: #d81919; }
+            button { width: 100%; padding: 15px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
             button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
             .error-message { color: #f44336; font-size: 14px; text-align: center; margin-top: 10px; padding: 10px; background: #ffebee; border-radius: 5px; display: <?php echo $password_error ? 'block' : 'none'; ?>; }
             .info-text { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
@@ -94,16 +113,14 @@ if (!$show_info) {
             <div class="password-icon">🔒</div>
             <div class="header">
                 <h1>Password Required</h1>
-                <p>This employee information is protected. Please enter the password to continue.</p>
+                <p>Enter the password for <strong><?php echo htmlspecialchars($employee['full_name']); ?></strong> to view their information.</p>
             </div>
             
-            <form method="GET" action="view_employee.php">
-                <input type="hidden" name="id" value="<?php echo $id; ?>">
-                <input type="hidden" name="employee_id" value="<?php echo $employee_id; ?>">
+            <form method="POST" action="view_employee.php?id=<?php echo urlencode($id); ?>&employee_id=<?php echo urlencode($employee_id); ?>">
                 
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" name="pass" placeholder="Enter password" autofocus>
+                    <input type="password" name="pass" placeholder="Enter password" autofocus maxlength="128">
                 </div>
                 
                 <button type="submit">Verify & Continue</button>
@@ -132,21 +149,21 @@ if (!$show_info) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #d81919 0%, #555555 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
         .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUp 0.5s ease; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         
         .profile-header { display: flex; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0; }
-        .profile-photo { width: 120px; height: 120px; border-radius: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin-right: 30px; overflow: hidden; }
+        .profile-photo { width: 120px; height: 120px; border-radius: 60px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); display: flex; align-items: center; justify-content: center; margin-right: 30px; overflow: hidden; }
         .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
         .profile-photo .initials { color: white; font-size: 48px; font-weight: bold; }
         .profile-title h1 { font-size: 32px; color: #333; margin-bottom: 5px; }
-        .profile-title p { color: #667eea; font-size: 18px; font-weight: 600; }
+        .profile-title p { color: #d81919; font-size: 18px; font-weight: 600; }
         
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
         .info-section { background: #f8f9fa; border-radius: 15px; padding: 20px; }
-        .info-section h2 { color: #667eea; font-size: 18px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
+        .info-section h2 { color: #d81919; font-size: 18px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
         .info-section h2 i { margin-right: 8px; }
         .info-row { display: flex; margin-bottom: 10px; }
         .info-label { width: 150px; color: #666; font-size: 14px; }
@@ -154,7 +171,7 @@ if (!$show_info) {
         
         .action-buttons { display: flex; gap: 15px; margin-top: 20px; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; }
         .btn-secondary { background: #f0f0f0; color: #333; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         

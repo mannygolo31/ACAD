@@ -3,36 +3,69 @@
 require_once 'config.php';
 requireLogin();
 
-// Get filter parameters
+// Get filter parameters with validation
 $search = isset($_GET['search']) ? sanitize($_GET['search']) : '';
 $department = isset($_GET['department']) ? sanitize($_GET['department']) : '';
 $status = isset($_GET['status']) ? sanitize($_GET['status']) : '';
 
-// Build query
+// Validate search length
+if (strlen($search) > 200) {
+    $search = substr($search, 0, 200);
+}
+
+// Pagination settings
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
+// Build count query
+$count_query = "SELECT COUNT(*) as total FROM employees WHERE 1=1";
 $query = "SELECT * FROM employees WHERE 1=1";
 $params = [];
 $types = "";
 
 if ($search) {
-    $query .= " AND (first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ? OR email LIKE ?)";
+    $search_clause = " AND (first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ? OR email LIKE ?)";
+    $count_query .= $search_clause;
+    $query .= $search_clause;
     $searchTerm = "%$search%";
     $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $types .= "ssss";
 }
 
 if ($department) {
-    $query .= " AND department = ?";
+    $dept_clause = " AND department = ?";
+    $count_query .= $dept_clause;
+    $query .= $dept_clause;
     $params[] = $department;
     $types .= "s";
 }
 
 if ($status) {
-    $query .= " AND employment_status = ?";
+    $status_clause = " AND employment_status = ?";
+    $count_query .= $status_clause;
+    $query .= $status_clause;
     $params[] = $status;
     $types .= "s";
 }
 
-$query .= " ORDER BY created_at DESC";
+// Get total count
+$count_stmt = $conn->prepare($count_query);
+if (!empty($params)) {
+    $count_stmt->bind_param($types, ...$params);
+}
+$count_stmt->execute();
+$total_rows = $count_stmt->get_result()->fetch_assoc()['total'];
+$count_stmt->close();
+
+$total_pages = max(1, ceil($total_rows / $per_page));
+$page = min($page, $total_pages);
+$offset = ($page - 1) * $per_page;
+
+// Order ascending (1, 2, 3...)
+$query .= " ORDER BY id ASC LIMIT ? OFFSET ?";
+$params[] = $per_page;
+$params[] = $offset;
+$types .= "ii";
 
 // Get departments for filter
 $depts = $conn->query("SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != '' ORDER BY department");
@@ -47,6 +80,14 @@ if (!empty($params)) {
 }
 $stmt->execute();
 $result = $stmt->get_result();
+
+// Build pagination URL params
+$url_params = [];
+if ($search) $url_params['search'] = $search;
+if ($department) $url_params['department'] = $department;
+if ($status) $url_params['status'] = $status;
+$url_base = 'records.php?' . http_build_query($url_params);
+if (!empty($url_params)) $url_base .= '&';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,10 +98,10 @@ $result = $stmt->get_result();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; display: flex; }
-        
+        body { font-family: 'Futura', 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; display: flex; }
+
         /* Sidebar */
-        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #d81919 0%, #555555 100%); color: white; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; }
         .sidebar-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { font-size: 24px; margin-bottom: 5px; }
         .sidebar-header p { font-size: 14px; opacity: 0.8; }
@@ -69,29 +110,29 @@ $result = $stmt->get_result();
         .menu-item i { width: 25px; margin-right: 10px; }
         .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.2); }
         .menu-item.logout { position: absolute; bottom: 20px; width: 100%; border-top: 1px solid rgba(255,255,255,0.1); }
-        
+
         /* Main Content */
         .main-content { margin-left: 280px; padding: 30px; width: calc(100% - 280px); }
         .header { background: white; padding: 20px 30px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .header h1 { color: #333; font-size: 24px; }
-        
+
         /* Filters */
         .filters { background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { margin-bottom: 5px; color: #555; font-size: 14px; font-weight: 500; }
+        .filter-group label { margin-bottom: 5px; color: #555555; font-size: 14px; font-weight: 500; }
         .filter-group input, .filter-group select { padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; }
-        .filter-group input:focus, .filter-group select:focus { border-color: #667eea; }
+        .filter-group input:focus, .filter-group select:focus { border-color: #d81919; }
         .filter-actions { display: flex; gap: 10px; align-items: flex-end; }
         .filter-actions button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
-        .btn-apply { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-apply { background: linear-gradient(135deg, #d81919 0%, #a01414 100%); color: white; }
         .btn-reset { background: #f0f0f0; color: #333; }
-        
+
         /* Table */
         .table-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px 10px; background: #f8f9fa; color: #333; font-weight: 600; border-bottom: 2px solid #e0e0e0; position: sticky; top: 0; }
-        td { padding: 15px 10px; border-bottom: 1px solid #e0e0e0; color: #666; }
+        td { padding: 15px 10px; border-bottom: 1px solid #e0e0e0; color: #555555; }
         tr:hover { background: #f8f9fa; }
         .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .status-fulltime { background: #e8f5e8; color: #4caf50; }
@@ -105,17 +146,20 @@ $result = $stmt->get_result();
         .action-btn.qr { background: #9c27b0; }
         .export-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn-export { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; background: #4caf50; color: white; }
-        
+
         /* Pagination */
-        .pagination { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
-        .page-btn { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 4px; background: white; cursor: pointer; }
-        .page-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination { margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .page-btn { padding: 8px 14px; border: 1px solid #e0e0e0; border-radius: 6px; background: white; cursor: pointer; text-decoration: none; color: #333; font-size: 14px; transition: all 0.3s; }
+        .page-btn:hover { border-color: #d81919; color: #d81919; }
+        .page-btn.active { background: #d81919; color: white; border-color: #d81919; }
+        .page-btn.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .page-info { color: #555555; font-size: 14px; margin: 0 10px; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>📱 QR Directory</h2>
+            <h2><i class="fas fa-shield-alt"></i> NSIAI</h2>
             <p>Employee Management System</p>
         </div>
         <div class="sidebar-menu">
@@ -133,6 +177,9 @@ $result = $stmt->get_result();
             </a>
             <a href="records.php" class="menu-item active">
                 <i class="fas fa-table"></i> Records
+            </a>
+            <a href="reset_password.php" class="menu-item">
+                <i class="fas fa-key"></i> Reset Password
             </a>
             <a href="logout.php" class="menu-item logout">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -158,7 +205,7 @@ $result = $stmt->get_result();
                 <div class="filter-grid">
                     <div class="filter-group">
                         <label>Search</label>
-                        <input type="text" name="search" placeholder="Name, ID, Email..." value="<?php echo htmlspecialchars($search); ?>">
+                        <input type="text" name="search" placeholder="Name, ID, Email..." value="<?php echo htmlspecialchars($search); ?>" maxlength="200">
                     </div>
                     <div class="filter-group">
                         <label>Department</label>
@@ -194,7 +241,7 @@ $result = $stmt->get_result();
             <table id="recordsTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Employee ID</th>
                         <th>Full Name</th>
                         <th>Position</th>
@@ -207,15 +254,16 @@ $result = $stmt->get_result();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <?php
+                    <?php
+                    $row_number = $offset + 1;
+                    while ($row = $result->fetch_assoc()):
                         $statusClass = '';
                         if ($row['employment_status'] == 'Full-time') $statusClass = 'status-fulltime';
                         elseif ($row['employment_status'] == 'Part-time') $statusClass = 'status-parttime';
                         elseif ($row['employment_status'] == 'Contractual') $statusClass = 'status-contractual';
-                        ?>
+                    ?>
                         <tr>
-                            <td><?php echo $row['id']; ?></td>
+                            <td><?php echo $row_number++; ?></td>
                             <td><?php echo htmlspecialchars($row['employee_id']); ?></td>
                             <td><?php echo htmlspecialchars($row['full_name']); ?></td>
                             <td><?php echo htmlspecialchars($row['position']); ?></td>
@@ -238,14 +286,31 @@ $result = $stmt->get_result();
                                 <a href="generate_qr.php?id=<?php echo $row['id']; ?>" class="action-btn qr" title="QR Code">
                                     <i class="fas fa-qrcode"></i>
                                 </a>
-                                <a href="employees.php?delete=<?php echo $row['id']; ?>" class="action-btn delete" title="Delete" onclick="return confirm('Are you sure you want to delete this employee?')">
-                                    <i class="fas fa-trash"></i>
-                                </a>
                             </td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>
             </table>
+
+            <?php if ($total_pages > 1): ?>
+            <div class="pagination">
+                <a href="<?php echo $url_base; ?>page=1" class="page-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>"><i class="fas fa-angle-double-left"></i></a>
+                <a href="<?php echo $url_base; ?>page=<?php echo max(1, $page - 1); ?>" class="page-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>"><i class="fas fa-angle-left"></i></a>
+
+                <?php
+                $start_page = max(1, $page - 2);
+                $end_page = min($total_pages, $page + 2);
+                for ($i = $start_page; $i <= $end_page; $i++):
+                ?>
+                    <a href="<?php echo $url_base; ?>page=<?php echo $i; ?>" class="page-btn <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                <?php endfor; ?>
+
+                <a href="<?php echo $url_base; ?>page=<?php echo min($total_pages, $page + 1); ?>" class="page-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>"><i class="fas fa-angle-right"></i></a>
+                <a href="<?php echo $url_base; ?>page=<?php echo $total_pages; ?>" class="page-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>"><i class="fas fa-angle-double-right"></i></a>
+
+                <span class="page-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?> (<?php echo $total_rows; ?> records)</span>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -253,17 +318,17 @@ $result = $stmt->get_result();
         function exportToCSV() {
             let csv = [];
             let rows = document.querySelectorAll("#recordsTable tr");
-            
+
             for (let i = 0; i < rows.length; i++) {
                 let row = [], cols = rows[i].querySelectorAll("td, th");
-                
-                for (let j = 0; j < cols.length - 1; j++) { // Exclude actions column
-                    let data = cols[j].innerText.replace(/,/g, ';'); // Replace commas to avoid CSV issues
+
+                for (let j = 0; j < cols.length - 1; j++) {
+                    let data = cols[j].innerText.replace(/,/g, ';');
                     row.push('"' + data + '"');
                 }
                 csv.push(row.join(','));
             }
-            
+
             let csvContent = csv.join("\n");
             let blob = new Blob([csvContent], { type: 'text/csv' });
             let url = window.URL.createObjectURL(blob);
@@ -272,7 +337,7 @@ $result = $stmt->get_result();
             a.download = 'employee_records.csv';
             a.click();
         }
-        
+
         function exportToExcel() {
             let table = document.getElementById('recordsTable');
             let html = table.outerHTML;
