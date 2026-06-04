@@ -848,7 +848,7 @@ function renderDashboard(){
     +alerts.map(function(a){return'<div class="alert-strip '+a.t+'"><span>'+(a.t==='danger'?'\u26a0':a.t==='warning'?'\u26a0':'\u2139')+'</span><span>'+esc(a.m)+'</span><button class="alert-close" onclick="this.closest(\'.alert-strip\').remove()">\u2715</button></div>';}).join('')
     +'<div class="kpi-grid">'
     +'<div class="kpi-card" style="--kc:var(--bl)"><div class="kpi-lbl">Total Bids</div><div class="kpi-val">'+records.length+'</div></div>'
-    +'<div class="kpi-card" style="--kc:var(--bl)"><div class="kpi-lbl">Total Pre-Bid ABC</div><div class="kpi-val" style="font-size:1.05rem">'+php(tABC)+'</div></div>'
+    +'<div class="kpi-card" style="--kc:var(--bl)"><div class="kpi-lbl">Total ABC</div><div class="kpi-val" style="font-size:1.05rem">'+php(tABC)+'</div></div>'
     +'<div class="kpi-card" style="--kc:var(--am)"><div class="kpi-lbl">Total COGs</div><div class="kpi-val" style="font-size:1.05rem">'+php(tCOGS)+'</div></div>'
     +'<div class="kpi-card" style="--kc:var(--am)"><div class="kpi-lbl">Total Deductions</div><div class="kpi-val c-amber" style="font-size:1.05rem">'+php(tDed)+'</div></div>'
     +'<div class="kpi-card" style="--kc:'+(tNet>=0?'var(--gr)':'var(--rd)')+'"><div class="kpi-lbl">Total Net</div><div class="kpi-val '+(tNet>=0?'c-green':'c-red')+'" style="font-size:1.05rem">'+php(tNet)+'</div><div class="kpi-sub">Margin: '+mg+'%</div></div>'
@@ -961,7 +961,7 @@ function renderSlotTable(slotData,type,label){
 function buildRow(r){
   var net=calcNet(r);
   var tDed=calcTotalDed(r);
-  var pct=r.abc>0?(net/r.abc*100).toFixed(1):'0.0';
+  var pct=(r.awardedAbc||0)>0?(net/(r.awardedAbc||1)*100).toFixed(1):'0.0';
   var delCnt=(r.deliveries||[]).filter(function(d){return d.no||d.date;}).length;
   var colCnt=(r.collections||[]).filter(function(c){return c.no||c.date;}).length;
   var rowCls=r.approved?'approved-row':r.rejected?'rejected-row':isSuccess(r)?'success-row':'';
@@ -1139,7 +1139,7 @@ function renderFormPanel(rec){
   var d2Amt=rec.ded2||0;
   var d3Amt=abc*(rec.ded3||0)/100;
   var d4Amt=rec.ded4||0;
-  var mg=abc>0?(net/abc*100).toFixed(1):'0.0';
+  var mg=(rec.awardedAbc||0)>0?(net/(rec.awardedAbc||1)*100).toFixed(1):'0.0';
   var nc=net>=0?'var(--gr)':'var(--rd)';
   var encodedByVal=rec.encodedBy||(user?user.displayName:'');
   var encodedByRo=user&&user.role!=='Admin';
@@ -1171,16 +1171,16 @@ function renderFormPanel(rec){
 
     +'<div class="form-section"><div class="form-section-title">Financial Details</div>'
     +'<div class="form-grid">'
-    +'<div class="fgrp"><label>Pre-Bid ABC Non-VAT (\u20b1)</label><input id="fABC" type="number" step="0.01" min="0" value="'+(rec.abc||0)+'"/></div>'
     +'<div class="fgrp"><label>Awarded ABC (\u20b1)</label><input id="fAwardedABC" type="number" step="0.01" min="0" value="'+(rec.awardedAbc||0)+'"/></div>'
+    +'<div class="fgrp"><label>Pre-Bid ABC Non-VAT (\u20b1)</label><input id="fABC" type="number" step="0.01" min="0" value="'+(rec.abc||0)+'"/></div>'
     +'<div class="fgrp"><label>COGs (\u20b1)</label><input id="fCOGS" type="number" step="0.01" min="0" value="'+(rec.cogs||0)+'"/></div>'
     +'<div class="fgrp"><label>Ded 1 \u2014 VAT (%)</label><input id="fD1" type="number" step="0.01" min="0" max="100" value="'+(rec.ded1||0)+'"/></div>'
     +'<div class="fgrp"><label>Ded 2 \u2014 EWT (\u20b1)</label><input id="fD2" type="number" step="0.01" min="0" value="'+(rec.ded2||0)+'" placeholder="Fixed amount"/></div>'
     +'<div class="fgrp"><label>Ded 3 \u2014 Commitment Fee (%)</label><input id="fD3" type="number" step="0.01" min="0" max="100" value="'+(rec.ded3||0)+'"/></div>'
     +'<div class="fgrp"><label>Ded 4 \u2014 Direct Expenses (\u20b1)</label><input id="fD4" type="number" step="0.01" min="0" value="'+(rec.ded4||0)+'" placeholder="Fixed amount"/></div>'
     +'<div class="net-preview">'
-    +'<div class="np-item"><div class="np-lbl">Awarded ABC</div><div class="np-val c-blue" id="pvABC">'+php(abc)+'</div></div>'
-    +'<div class="np-item"><div class="np-lbl">Pre-Bid ABC Non-VAT</div><div class="np-val c-blue" id="pvAwardedABC">'+php(rec.awardedAbc||0)+'</div></div>'
+    +'<div class="np-item"><div class="np-lbl">Awarded ABC</div><div class="np-val c-blue" id="pvAwardedABC">'+php(rec.awardedAbc||0)+'</div></div>'
+    +'<div class="np-item"><div class="np-lbl">Pre-Bid ABC Non-VAT</div><div class="np-val c-blue" id="pvABC">'+php(abc)+'</div></div>'
     +'<div class="np-item"><div class="np-lbl">COGs</div><div class="np-val" style="color:var(--am)" id="pvCOGS">'+php(rec.cogs||0)+'</div></div>'
     +'<div class="np-item"><div class="np-lbl">VAT</div><div class="np-val c-amber" id="pvD1Amt">'+php(d1Amt)+'</div></div>'
     +'<div class="np-item"><div class="np-lbl">EWT</div><div class="np-val c-amber" id="pvD2Amt">'+php(d2Amt)+'</div></div>'
@@ -1364,11 +1364,11 @@ function wireFormPanel(editRec){
     var awardedAbc=+(gv('fAwardedABC'))||0;
     var d1Amt=abc*d1/100;var d2Amt=d2;var d3Amt=abc*d3/100;var d4Amt=d4;
     var totalDed=d1Amt+d2Amt+d3Amt+d4Amt;
-    var net=abc-cogs-totalDed;
-    var mg=abc>0?(net/abc*100).toFixed(1):'0.0';
+    var net=cogs-awardedAbc;
+    var mg=awardedAbc>0?(net/awardedAbc*100).toFixed(1):'0.0';
     var nc=net>=0?'var(--gr)':'var(--rd)';
     var se=function(id,val,col){var el=document.getElementById(id);if(!el)return;if(val!==undefined)el.textContent=val;if(col)el.style.color=col;};
-    se('pvABC',php(abc));se('pvAwardedABC',php(awardedAbc));se('pvCOGS',php(cogs));
+    se('pvAwardedABC',php(awardedAbc));se('pvABC',php(abc));se('pvCOGS',php(cogs));
     se('pvD1Amt',php(d1Amt));se('pvD2Amt',php(d2Amt));se('pvD3Amt',php(d3Amt));se('pvD4Amt',php(d4Amt));
     se('pvDed',php(totalDed));se('pvNet',php(net),nc);se('pvMg',mg+'%',nc);
   };
@@ -1538,8 +1538,8 @@ function showDetailModal(r){
     +((r.poReceivedDate||r.poReceivedPdfLink)?drow('PO Received',(r.poReceivedDate?fmtD(r.poReceivedDate):'—')+(r.poReceivedPdfLink?' <span class="pdf-badge"><a href="'+esc(r.poReceivedPdfLink)+'" target="_blank">&#128196; View PDF</a></span>':'')):'')
     +'</div></div>'
     +'<div class="detail-section"><div class="detail-section-head"><span class="dsic">&#128176;</span>Financial Details</div><div class="detail-rows">'
-    +moneyRow('Awarded ABC',abc,'blue')
-    +(r.awardedAbc?moneyRow('Pre-Bid ABC',r.awardedAbc,'blue'):'')
+    +moneyRow('Awarded ABC',r.awardedAbc||0,'blue')
+    +moneyRow('Pre-Bid ABC Non-VAT',abc,'blue')
     +moneyRow('COGs',r.cogs)
     +drow('Ded 1 \u2014 VAT',(r.ded1||0)+'% = '+php(abc*(r.ded1||0)/100))
     +drow('Ded 2 \u2014 EWT',php(r.ded2||0))
@@ -1685,8 +1685,8 @@ function printPO(r){
     +'</tbody><tfoot><tr><td colspan="4" style="text-align:right">TOTAL:</td><td class="amt">'+php(total)+'</td><td colspan="3"></td></tr></tfoot></table>'
     +'<div class="po-summary">'
     +'<div class="po-sum-box"><div class="po-info-title">Financial Summary</div>'
-    +'<div class="po-sum-row"><span>Awarded ABC:</span><span>'+php(r.abc)+'</span></div>'
-    +(r.awardedAbc?'<div class="po-sum-row"><span>Pre-Bid ABC (Non-VAT):</span><span>'+php(r.awardedAbc)+'</span></div>':'')
+    +'<div class="po-sum-row"><span>Awarded ABC:</span><span>'+php(r.awardedAbc||0)+'</span></div>'
+    +'<div class="po-sum-row"><span>Pre-Bid ABC (Non-VAT):</span><span>'+php(r.abc)+'</span></div>'
     +'<div class="po-sum-row"><span>COGs:</span><span>'+php(r.cogs)+'</span></div>'
     +'<div class="po-sum-row"><span>Total Deductions:</span><span>'+php(calcTotalDed(r))+'</span></div>'
     +'<div class="po-sum-row total"><span>Net:</span><span style="color:'+(net>=0?'#0a9261':'#d63b2f')+'">'+php(net)+'</span></div>'
@@ -1824,7 +1824,7 @@ function renderAudit(){
 function exportXls(rows){
   var data=[
     ['Date','Description','ITB No.','Agency','Region','Type','Status','Encoded By','Last Edited By',
-     'Deadline','Awarded ABC (\u20b1)','Pre-Bid ABC (\u20b1)','COGs (\u20b1)',
+     'Deadline','Awarded ABC (\u20b1)','Pre-Bid ABC Non-VAT (\u20b1)','COGs (\u20b1)',
      'VAT (%)','VAT (\u20b1)','EWT (\u20b1)','Comm.Fee (%)','Comm.Fee (\u20b1)','Direct Exp. (\u20b1)','Total Deductions (\u20b1)',
      'Net (\u20b1)','Net Margin (%)','Approved','Rejected','Comments',
      'NOA Date','NTP Date','PO Received Date',
@@ -1837,10 +1837,10 @@ function exportXls(rows){
   rows.forEach(function(r){
     var net=calcNet(r);var abc=r.abc||0;var tDed=calcTotalDed(r);
     var d1Amt=abc*(r.ded1||0)/100;var d3Amt=abc*(r.ded3||0)/100;
-    var mg=abc>0?(net/abc*100).toFixed(2)+'%':'0%';
+    var mg=(r.awardedAbc||0)>0?(net/(r.awardedAbc||1)*100).toFixed(2)+'%':'0%';
     var poStr=(r.poEntries||[]).filter(function(e){return e.poNo||e.amount;}).map(function(e){return(e.poNo||'')+': \u20b1'+(e.amount||0)+(e.supplier?' ('+e.supplier+')':'');}).join(' | ');
     data.push([fmtD(r.date),r.description,r.itbNo||'',r.agency||'',r.region||'',r.type,r.status,r.encodedBy||'',r.lastEditedBy||'',
-      r.deadline?fmtD(r.deadline):'',abc,r.awardedAbc||0,r.cogs||0,
+      r.deadline?fmtD(r.deadline):'',r.awardedAbc||0,abc,r.cogs||0,
       r.ded1||0,d1Amt,r.ded2||0,r.ded3||0,d3Amt,r.ded4||0,tDed,
       net,mg,r.approved?'YES':'NO',r.rejected?'YES':'NO',r.comments||'',
       r.noaDate?fmtD(r.noaDate):'',r.ntpDate?fmtD(r.ntpDate):'',r.poReceivedDate?fmtD(r.poReceivedDate):'',
