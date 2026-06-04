@@ -135,8 +135,7 @@ function getNotifSheet() {
 function num(v) { var n = Number(v); return isNaN(n) ? 0 : n; }
 
 function calculateNet(r) {
-  var abc = num(r.abc);
-  return abc - num(r.cogs) - abc * num(r.ded1) / 100 - num(r.ded2) - abc * num(r.ded3) / 100 - num(r.ded4);
+  return num(r.cogs) - num(r.awardedAbc);
 }
 
 function calculateTotalDed(r) {

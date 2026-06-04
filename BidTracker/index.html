@@ -502,7 +502,7 @@ const fmtD=d=>{if(!d)return'\u2014';try{return new Date(d).toLocaleDateString('e
 const fmtDT=d=>{if(!d)return'\u2014';try{return new Date(d).toLocaleString('en-PH');}catch{return'\u2014';}};
 const fmtTs=d=>{if(!d)return'';try{return new Date(d).toLocaleString('en-PH');}catch{return'';}};
 const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
-const calcNet=r=>{const a=r.abc||0;return a-(r.cogs||0)-a*(r.ded1||0)/100-(r.ded2||0)-a*(r.ded3||0)/100-(r.ded4||0);};
+const calcNet=r=>{return(r.cogs||0)-(r.awardedAbc||0);};
 const calcTotalDed=r=>{const a=r.abc||0;return a*(r.ded1||0)/100+(r.ded2||0)+a*(r.ded3||0)/100+(r.ded4||0);};
 const isSuccess=r=>SUCCESS_STATUSES.includes(r.status);
 const isFail=r=>FAIL_STATUSES.includes(r.status);
