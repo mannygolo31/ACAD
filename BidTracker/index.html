@@ -915,10 +915,10 @@ function poEntryRow(i,r){
     +'<td style="width:140px"><input type="number" min="0" step="0.01" placeholder="0.00" value="'+(r.amount||0)+'" data-pi="'+i+'" data-pf="amount" oninput="recalcPoTotal()" style="text-align:right"/></td>'
     +'<td style="width:140px"><input type="number" min="0" step="0.01" placeholder="0.00" value="'+(r.payable||0)+'" data-pi="'+i+'" data-pf="payable" style="text-align:right"/></td>'
     +'<td style="width:130px"><select data-pi="'+i+'" data-pf="payableStatus" onchange="toggleVoucherNo('+i+')"><option value="">\u2014 Select \u2014</option><option value="To Be Funded"'+((r.payableStatus||'')==='To Be Funded'?' selected':'')+'>To Be Funded</option><option value="Paid"'+((r.payableStatus||'')==='Paid'?' selected':'')+'>Paid</option></select></td>'
-    +'<td style="width:140px"><input placeholder="Voucher No." value="'+esc(r.voucherNo||'')+'" data-pi="'+i+'" data-pf="voucherNo" style="display:'+(paidSel?'block':'none')+'" id="voucher_'+i+'"/></td>'
+    +'<td style="width:140px"><input type="text" placeholder="Voucher No." value="'+esc(r.voucherNo||'')+'" data-pi="'+i+'" data-pf="voucherNo" style="display:'+(paidSel?'block':'none')+'"'+(paidSel?'':' disabled')+' id="voucher_'+i+'"/></td>'
     +'<td><button class="del-row-btn" onclick="removePoRow('+i+')">\u2715</button></td></tr>';
 }
-function toggleVoucherNo(i){var sel=document.querySelector('[data-pi="'+i+'"][data-pf="payableStatus"]');var vc=document.getElementById('voucher_'+i);if(sel&&vc){vc.style.display=sel.value==='Paid'?'block':'none';if(sel.value!=='Paid')vc.value='';}}
+function toggleVoucherNo(i){var sel=document.querySelector('[data-pi="'+i+'"][data-pf="payableStatus"]');var vc=document.getElementById('voucher_'+i);if(sel&&vc){var isPaid=sel.value==='Paid';vc.style.display=isPaid?'block':'none';vc.disabled=!isPaid;if(!isPaid)vc.value='';}}
 function addPoRow(){var tbody=document.getElementById('po_body');if(!tbody)return;var i=tbody.querySelectorAll('tr').length;tbody.insertAdjacentHTML('beforeend',poEntryRow(i,{poNo:'',supplier:'',amount:0,payable:0,payableStatus:'',voucherNo:''}));}
 function removePoRow(i){var row=document.getElementById('po_row_'+i);if(row)row.remove();recalcPoTotal();}
 function recalcPoTotal(){
